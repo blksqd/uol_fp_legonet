@@ -8,8 +8,8 @@ RAW_IMAGE_PATH = '../data/raw_test/'
 PATCHES_PATH = '../data/patches/'
 CSV_OUTPUT_PATH = '../data/patch_metadata.csv'
 IMAGE_SIZE = (256, 256)  # Standard size for resizing images
-PATCH_SIZE = (64, 64)    # Size of each patch due to memory constraints (ideal are 16 x 16 )
-METADATA_PATH = '../data/csv/two_class_metadata.csv' # Data has been already manipulated to reduce dimensionality 
+PATCH_SIZE = (64, 64)    # Size of each patch
+METADATA_PATH = '../data/csv/two_class_metadata.csv'
 
 # Load and resize images
 def load_images(image_path, target_size):
@@ -30,7 +30,7 @@ def segment_into_patches(image, patch_size):
     for i in range(0, h, patch_size[0]):
         for j in range(0, w, patch_size[1]):
             patch = image[i:i+patch_size[0], j:j+patch_size[1], :]
-            patches.append(((i, j), patch))  # Store patch with its top-left corner coordinates!!
+            patches.append(((i, j), patch))  # Store patch with its top-left corner coordinates
     return patches
 
 # Tag each patch with a sequence ID and coordinates
