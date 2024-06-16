@@ -76,6 +76,3 @@ def main(patches_dir):
 patches_dir = '../LEGO/data/patches/'
 main(patches_dir)
 
-# Run the script
-patches_dir = '../LEGO/data/patches/'  
-main(patches_dir)
