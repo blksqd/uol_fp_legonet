@@ -73,6 +73,5 @@ def main(patches_dir):
     plt.show()
 
 # Run the script
-patches_dir = '../LEGO/data/patches/'
+patches_dir = '/Users/andreshofmann/Desktop/Studies/Uol/7t/FP/LEGO/data/patches' 
 main(patches_dir)
-
