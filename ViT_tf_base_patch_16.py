@@ -73,7 +73,7 @@ def main(patches_dir):
     plt.show()
 
 # Run the script
-patches_dir = '../LEGO/data/patches/'  # Replace with your patches directory
+patches_dir = '../LEGO/data/patches/'
 main(patches_dir)
 
 # Run the script
