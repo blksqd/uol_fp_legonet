@@ -14,12 +14,12 @@ import matplotlib.pyplot as plt  # Import matplotlib for plotting
 batch_size = 64
 num_channels = 3  # RGB 
 num_classes = 2
-image_size = (64, 64)  
+image_size = (64, 64) 
 latent_dim = 128
 
 # Paths to data
-patch_dir = '../LEGO/data/patches/' 
-csv_path = '../LEGO/data/csv/patch_metadata.csv' 
+patch_dir = '/Users/andreshofmann/Desktop/Studies/Uol/7t/FP/LEGO/data/patches'  # Directory containing patch images
+csv_path = '/Users/andreshofmann/Desktop/Studies/Uol/7t/FP/LEGO/data/csv/patch_metadata.csv'  # Path to CSV file with metadata
 
 # Start time tracking
 start_time = time.time()
@@ -30,7 +30,7 @@ metadata = pd.read_csv(csv_path)
 print(f"Metadata loaded. {metadata.shape[0]} entries found.")
 print(f"Time taken to load metadata: {time.time() - start_time:.2f} seconds")
 
-# Encode labels to integers and then to one-hot
+# Encode labels to integers then to one-hot
 print("Encoding labels...")
 label_encoder = LabelEncoder()
 integer_encoded = label_encoder.fit_transform(metadata['class'])
@@ -38,7 +38,7 @@ one_hot_labels = to_categorical(integer_encoded, num_classes=num_classes)
 print(f"Labels encoded. Number of classes: {num_classes}")
 print(f"Time taken to encode labels: {time.time() - start_time:.2f} seconds")
 
-# Function to get the full path of the patch from the csv
+# Function to get the full path of the patch
 def get_patch_path(row):
     patch_filename = f"{row['patch_id']}.png"
     return os.path.join(patch_dir, patch_filename)
@@ -97,7 +97,7 @@ discriminator = tf.keras.Sequential(
 print("Discriminator built.")
 print(f"Time taken to build discriminator: {time.time() - start_time:.2f} seconds")
 
-# Create the generator 
+# Create the generator with an additional layer to enhance capacity
 print("Building generator...")
 generator = tf.keras.Sequential(
     [
@@ -109,7 +109,7 @@ generator = tf.keras.Sequential(
         layers.LeakyReLU(alpha=0.2),  # Changed negative_slope to alpha
         layers.Conv2DTranspose(128, (4, 4), strides=(2, 2), padding="same"),
         layers.LeakyReLU(alpha=0.2),  # Changed negative_slope to alpha
-        layers.Conv2DTranspose(64, (4, 4), strides=(2, 2), padding="same"), 
+        layers.Conv2DTranspose(64, (4, 4), strides=(2, 2), padding="same"),  # Additional layer
         layers.LeakyReLU(alpha=0.2),  # Changed negative_slope to alpha
         layers.Conv2D(num_channels, (7, 7), padding="same", activation="sigmoid"),
     ],
@@ -210,42 +210,6 @@ class ConditionalGAN(tf.keras.Model):
         })
         return config
 
-    @classmethod
-    def from_config(cls, config):
-        latent_dim = config['latent_dim']
-        discriminator = tf.keras.Sequential(
-            [
-                layers.InputLayer((image_size[0], image_size[1], discriminator_in_channels)),
-                layers.GaussianNoise(0.1),
-                layers.Conv2D(64, (3, 3), strides=(2, 2), padding="same"),
-                layers.LeakyReLU(alpha=0.2),  # Changed negative_slope to alpha
-                layers.Dropout(0.3),
-                layers.Conv2D(128, (3, 3), strides=(2, 2), padding="same"),
-                layers.LeakyReLU(alpha=0.2),  # Changed negative_slope to alpha
-                layers.Dropout(0.3),
-                layers.GlobalMaxPooling2D(),
-                layers.Dense(1),
-            ],
-            name="discriminator",
-        )
-
-        generator = tf.keras.Sequential(
-            [
-                layers.InputLayer((latent_dim + num_classes,)),
-                layers.Dense((image_size[0] // 4) * (image_size[1] // 4) * 128),
-                layers.LeakyReLU(alpha=0.2),  # Changed negative_slope to alpha
-                layers.Reshape((image_size[0] // 4, image_size[1] // 4, 128)),
-                layers.Conv2DTranspose(128, (4, 4), strides=(2, 2), padding="same"),
-                layers.LeakyReLU(alpha=0.2),  # Changed negative_slope to alpha
-                layers.Conv2DTranspose(128, (4, 4), strides=(2, 2), padding="same"),
-                layers.LeakyReLU(alpha=0.2),  # Changed negative_slope to alpha
-                layers.Conv2DTranspose(64, (4, 4), strides=(2, 2), padding="same"),
-                layers.LeakyReLU(alpha=0.2),  # Changed negative_slope to alpha
-                layers.Conv2D(num_channels, (7, 7), padding="same", activation="sigmoid"),
-            ],
-            name="generator",
-        )
-        return cls(discriminator, generator, latent_dim)
 
     def save(self, filepath, overwrite=True, include_optimizer=True):
         config = {
@@ -274,8 +238,8 @@ cond_gan = ConditionalGAN(
     discriminator=discriminator, generator=generator, latent_dim=latent_dim
 )
 cond_gan.compile(
-    d_optimizer=tf.keras.optimizers.Adam(learning_rate=0.0002),
-    g_optimizer=tf.keras.optimizers.Adam(learning_rate=0.0002),
+    d_optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+    g_optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
     loss_fn=tf.keras.losses.BinaryCrossentropy(from_logits=True),
 )
 print("Conditional GAN initialized.")
@@ -286,8 +250,8 @@ g_losses = []
 d_losses = []
 
 # Custom training loop to capture losses
-for epoch in range(3):  # Epochs total
-    print(f"Epoch {epoch + 1}/{3}")  # This is just for control and need to match manually the number of epochs
+for epoch in range(5):  
+    print(f"Epoch {epoch + 1}/{5}")  # Update to reflect the correct number of epochs
     for step, (x_batch_train, y_batch_train) in enumerate(dataset):
         loss = cond_gan.train_step((x_batch_train, y_batch_train))
         g_losses.append(loss['g_loss'].numpy())
@@ -322,23 +286,16 @@ print(f"Time taken to load the model: {time.time() - start_time:.2f} seconds")
 # Recompile the model after loading
 print("Recompiling the loaded model...")
 loaded_model.compile(
-    d_optimizer=tf.keras.optimizers.Adam(learning_rate=0.0002),
-    g_optimizer=tf.keras.optimizers.Adam(learning_rate=0.0002),
+    d_optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+    g_optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
     loss_fn=tf.keras.losses.BinaryCrossentropy(from_logits=True),
 )
 print("Model recompiled.")
 print(f"Time taken to recompile the model: {time.time() - start_time:.2f} seconds")
 
-# Build the discriminator by specifying input shape
-loaded_model.discriminator.build(input_shape=(None, image_size[0], image_size[1], discriminator_in_channels))
-
 # Verify the model structure
 print("Discriminator summary:")
 loaded_model.discriminator.summary()
 
-# Build the generator by specifying input shape
-loaded_model.generator.build(input_shape=(None, latent_dim + num_classes))
-
-# Verify the generator structure
 print("Generator summary:")
 loaded_model.generator.summary()
