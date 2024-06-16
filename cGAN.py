@@ -8,13 +8,13 @@ from tensorflow.keras import layers, Model
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 from sklearn.preprocessing import LabelEncoder
-import matplotlib.pyplot as plt  # Import matplotlib for plotting
+import matplotlib.pyplot as plt  
 
 # Configurations
 batch_size = 64
 num_channels = 3  # RGB 
 num_classes = 2
-image_size = (64, 64) 
+image_size = (64, 64)  
 latent_dim = 128
 
 # Paths to data
@@ -210,6 +210,42 @@ class ConditionalGAN(tf.keras.Model):
         })
         return config
 
+    @classmethod
+    def from_config(cls, config):
+        latent_dim = config['latent_dim']
+        discriminator = tf.keras.Sequential(
+            [
+                layers.InputLayer((image_size[0], image_size[1], discriminator_in_channels)),
+                layers.GaussianNoise(0.1),
+                layers.Conv2D(64, (3, 3), strides=(2, 2), padding="same"),
+                layers.LeakyReLU(alpha=0.2),  # Changed negative_slope to alpha
+                layers.Dropout(0.3),
+                layers.Conv2D(128, (3, 3), strides=(2, 2), padding="same"),
+                layers.LeakyReLU(alpha=0.2),  # Changed negative_slope to alpha
+                layers.Dropout(0.3),
+                layers.GlobalMaxPooling2D(),
+                layers.Dense(1),
+            ],
+            name="discriminator",
+        )
+
+        generator = tf.keras.Sequential(
+            [
+                layers.InputLayer((latent_dim + num_classes,)),
+                layers.Dense((image_size[0] // 4) * (image_size[1] // 4) * 128),
+                layers.LeakyReLU(alpha=0.2),  # Changed negative_slope to alpha
+                layers.Reshape((image_size[0] // 4, image_size[1] // 4, 128)),
+                layers.Conv2DTranspose(128, (4, 4), strides=(2, 2), padding="same"),
+                layers.LeakyReLU(alpha=0.2),  # Changed negative_slope to alpha
+                layers.Conv2DTranspose(128, (4, 4), strides=(2, 2), padding="same"),
+                layers.LeakyReLU(alpha=0.2),  # Changed negative_slope to alpha
+                layers.Conv2DTranspose(64, (4, 4), strides=(2, 2), padding="same"),
+                layers.LeakyReLU(alpha=0.2),  # Changed negative_slope to alpha
+                layers.Conv2D(num_channels, (7, 7), padding="same", activation="sigmoid"),
+            ],
+            name="generator",
+        )
+        return cls(discriminator, generator, latent_dim)
 
     def save(self, filepath, overwrite=True, include_optimizer=True):
         config = {
@@ -238,8 +274,8 @@ cond_gan = ConditionalGAN(
     discriminator=discriminator, generator=generator, latent_dim=latent_dim
 )
 cond_gan.compile(
-    d_optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
-    g_optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+    d_optimizer=tf.keras.optimizers.Adam(learning_rate=0.00001),
+    g_optimizer=tf.keras.optimizers.Adam(learning_rate=0.00001),
     loss_fn=tf.keras.losses.BinaryCrossentropy(from_logits=True),
 )
 print("Conditional GAN initialized.")
@@ -286,8 +322,8 @@ print(f"Time taken to load the model: {time.time() - start_time:.2f} seconds")
 # Recompile the model after loading
 print("Recompiling the loaded model...")
 loaded_model.compile(
-    d_optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
-    g_optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+    d_optimizer=tf.keras.optimizers.Adam(learning_rate=0.00001),
+    g_optimizer=tf.keras.optimizers.Adam(learning_rate=0.00001),
     loss_fn=tf.keras.losses.BinaryCrossentropy(from_logits=True),
 )
 print("Model recompiled.")
